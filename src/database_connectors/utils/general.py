@@ -1,13 +1,8 @@
 import logging 
 import os 
-
-from sqlite3 import Connection as SQLiteConnection
 from sqlite3 import Cursor as SQLiteCursor
 
 from psycopg2.extensions import cursor as PSQLCursor
-from psycopg2.extensions import connection as PSQLConnection
-
-from mysql.connector.connection import MySQLConnection 
 from mysql.connector.cursor import MySQLCursor
 
 
