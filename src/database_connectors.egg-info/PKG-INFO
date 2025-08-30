@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: database-connectors
+Version: 0.1.0
+Requires-Python: >=3.9
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: mysql-connector-python
+Requires-Dist: psycopg2-binary
+Dynamic: license-file

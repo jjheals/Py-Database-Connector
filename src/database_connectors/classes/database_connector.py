@@ -33,8 +33,8 @@ from sqlite3 import Cursor as SQLiteCursor
 # Custom utils and objs 
 from ..utils.general import setup_logger
 from ..exceptions import DatabaseNotConnected, TableDoesNotExist, DatabaseTypeNotSupported
-from db_cursor import DBCursor
-from database_type import DatabaseType
+from .db_cursor import DBCursor
+from .database_type import DatabaseType
 
 
 # Define a regex for preventing against injection
