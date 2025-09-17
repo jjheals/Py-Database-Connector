@@ -760,10 +760,10 @@ class DatabaseConnector(object):
         df_ordered = df_ordered.apply(self._maybe_cast_int, axis=0)
 
         # Generate the INSERT query
+        placeholders:str = ",".join([self.P] * len(db_table_cols))
         cols_sql = ",".join(self._qident(c) for c in db_table_cols)
         query = f'INSERT INTO {self._qident(table_name)} ({cols_sql}) VALUES ({placeholders})'
-        placeholders:str = ",".join([self.P] * len(db_table_cols))
-
+        
         # Build value tuples
         val_tuples = [
             tuple((None if pd.isna(v) else v) for v in row)
