@@ -383,12 +383,12 @@ class DatabaseConnector(object):
         return f'INSERT INTO {table_id} ({cols_str}) VALUES ({placeholders_str})'
 
 
-    def _qident(x: str) -> str:
+    def _qident(self, x: str) -> str:
         """Extra helper specifically for dump_table_to_df"""
         return f'"{x.replace(chr(34), chr(34)*2)}"'
     
 
-    def _maybe_cast_int(s: pd.Series) -> pd.Series:
+    def _maybe_cast_int(self, s: pd.Series) -> pd.Series:
         """Strips strings, casts to int, and NaN to None"""
         try:
             if s.dropna().map(lambda v: str(v).strip().lstrip('+').isdigit()).all():
