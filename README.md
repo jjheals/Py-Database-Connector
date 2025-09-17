@@ -98,7 +98,9 @@ DatabaseConnectors/
 │           └── general.py              # Logging setup and utilities
 │
 └── tests/
-    └── test_basic.py
+│   ├── test_dump_df_to_table.py
+│   ├── test_helpers.py
+│   └── test_sqlite_e2e.py 
 ```
 
 ---
