@@ -383,6 +383,20 @@ class DatabaseConnector(object):
         return f'INSERT INTO {table_id} ({cols_str}) VALUES ({placeholders_str})'
 
 
+    def _qident(x: str) -> str:
+        """Extra helper specifically for dump_table_to_df"""
+        return f'"{x.replace(chr(34), chr(34)*2)}"'
+    
+
+    def _maybe_cast_int(s: pd.Series) -> pd.Series:
+        """Strips strings, casts to int, and NaN to None"""
+        try:
+            if s.dropna().map(lambda v: str(v).strip().lstrip('+').isdigit()).all():
+                return s.map(lambda v: None if v is None else int(str(v).strip()))
+        except Exception:
+            pass
+        return s.map(lambda v: v.strip() if isinstance(v, str) else v)
+
 
     # ---- Methods for simple/common operations and utils ---- #
 
@@ -743,24 +757,44 @@ class DatabaseConnector(object):
             return
         
         # Convert NaN -> None so DB gets "None" instead of pd.na, and normalize numpy types
-        df_ordered = df_ordered.where(pd.notnull(df_ordered), None)
+        df_ordered = df_ordered.apply(self._maybe_cast_int, axis=0)
 
         # Generate the INSERT query
-        cols_sql:str = ",".join(f"{c}" for c in db_table_cols)    
+        cols_sql = ",".join(self._qident(c) for c in db_table_cols)
+        query = f'INSERT INTO {self._qident(table_name)} ({cols_sql}) VALUES ({placeholders})'
         placeholders:str = ",".join([self.P] * len(db_table_cols))
-        query:str = f"INSERT INTO {table_name} ({cols_sql}) VALUES ({placeholders})"
 
         # Build value tuples
-        val_tuples = [tuple(row) for row in df_ordered.to_numpy()]
+        val_tuples = [
+            tuple((None if pd.isna(v) else v) for v in row)
+            for row in df_ordered.itertuples(index=False, name=None)
+        ]
 
         # Execute query and commit changes
         try: 
             cursor.executemany(query, val_tuples)
             self.log_debug('dump_df_to_table()', f'Inserted {cursor.rowcount} rows into "{table_name}".')
         
-        except Exception as e: 
+        # Handle exceptions
+        except Exception as e:
+
+            # Default back to a row-by-row insert, so we insert the rows that work and can identify those that failed
             self.cxn.rollback()
-            self.log_error(f'dump_df_to_table()', e)
+            self.log_error('dump_df_to_table()', e)
+            self.log_debug('dump_df_to_table()', 'Falling back to row-by-row insert...')
+
+            for i, tup in enumerate(val_tuples, start=1):
+                try:
+                    cursor.execute(query, tup)
+                except Exception as e2:
+                    self.cxn.rollback()
+                    self.log_error(
+                        'dump_df_to_table()',
+                        RuntimeError(
+                            f'Row {i} failed for table "{table_name}". Values={tup}. Error={e2}.'
+                        )
+                    )
+                    raise
         
         # When all done
         finally: 
